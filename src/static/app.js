@@ -67,14 +67,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const participantsListEl = document.createElement("ul");
         participantsListEl.className = "participants-list";
 
-        // Inline fallback styles to force visibility if stylesheet isn't applied
-        participantsListEl.style.display = "flex";
-        participantsListEl.style.flexWrap = "wrap";
-        participantsListEl.style.gap = "6px";
-        participantsListEl.style.paddingLeft = "0";
-        participantsListEl.style.maxHeight = "6.5rem";
-        participantsListEl.style.overflow = "auto";
-        participantsListEl.style.WebkitOverflowScrolling = "touch";
+  // Inline fallback styles to force visibility if stylesheet isn't applied
+  participantsListEl.style.display = "flex";
+  participantsListEl.style.flexWrap = "wrap";
+  participantsListEl.style.gap = "6px";
+  participantsListEl.style.paddingLeft = "0";
+  // Hide default bullet points on the list
+  participantsListEl.style.listStyle = "none";
+  participantsListEl.style.maxHeight = "6.5rem";
+  participantsListEl.style.overflow = "auto";
+  participantsListEl.style.WebkitOverflowScrolling = "touch";
 
         // Debug helper: confirm element created and class applied
         console.debug(`Activity "${name}": participants count = ${participants.length}`, participants);
@@ -93,7 +95,11 @@ document.addEventListener("DOMContentLoaded", () => {
           const displayCount = Math.min(participants.length, 10);
           participants.slice(0, displayCount).forEach((p) => {
             const li = document.createElement("li");
-            li.textContent = participantLabel(p);
+
+            // label container so we can append a delete button next to it
+            const labelSpan = document.createElement("span");
+            labelSpan.textContent = participantLabel(p);
+
             // Inline badge fallback so items are visible without CSS
             li.style.display = "inline-flex";
             li.style.alignItems = "center";
@@ -105,6 +111,73 @@ document.addEventListener("DOMContentLoaded", () => {
             li.style.lineHeight = "1";
             li.style.border = "1px solid rgba(26,35,126,0.06)";
             li.style.whiteSpace = "nowrap";
+            li.style.gap = "8px";
+
+            // Create delete/unregister button
+            const delBtn = document.createElement("button");
+            delBtn.type = "button";
+            delBtn.className = "delete-participant";
+            delBtn.title = "Unregister participant";
+            // simple cross glyph; use text to avoid needing external assets
+            delBtn.textContent = "×";
+            // inline styles so it looks okay without CSS
+            delBtn.style.marginLeft = "8px";
+            delBtn.style.border = "none";
+            delBtn.style.background = "transparent";
+            delBtn.style.color = "#b00020";
+            delBtn.style.cursor = "pointer";
+            delBtn.style.fontSize = "14px";
+            delBtn.style.lineHeight = "1";
+            delBtn.style.padding = "0 6px";
+
+            // click handler to unregister the participant
+            delBtn.addEventListener("click", async (e) => {
+              e.stopPropagation();
+
+              // determine an identifier string to send to server
+              const participantId = typeof p === "string"
+                ? p
+                : (p.email || p.name || p.username || (p.id ? String(p.id) : JSON.stringify(p)));
+
+              try {
+                const resp = await fetch(
+                  `/activities/${encodeURIComponent(name)}/signup?email=${encodeURIComponent(participantId)}`,
+                  { method: "DELETE" }
+                );
+                let result = {};
+                try { result = await resp.json(); } catch (err) { /* ignore json parse errors */ }
+
+                if (resp.ok) {
+                  // remove the item from the UI and refresh activities to update counts
+                  li.remove();
+                  fetchActivities();
+                  if (messageDiv) {
+                    messageDiv.textContent = result.message || "Participant unregistered";
+                    messageDiv.className = "success";
+                    messageDiv.classList.remove("hidden");
+                    setTimeout(() => messageDiv.classList.add("hidden"), 3000);
+                  }
+                } else {
+                  if (messageDiv) {
+                    messageDiv.textContent = result.detail || "Failed to unregister participant";
+                    messageDiv.className = "error";
+                    messageDiv.classList.remove("hidden");
+                    setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+                  }
+                }
+              } catch (error) {
+                console.error("Error unregistering participant:", error);
+                if (messageDiv) {
+                  messageDiv.textContent = "Failed to unregister. Please try again.";
+                  messageDiv.className = "error";
+                  messageDiv.classList.remove("hidden");
+                  setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+                }
+              }
+            });
+
+            li.appendChild(labelSpan);
+            li.appendChild(delBtn);
             participantsListEl.appendChild(li);
           });
           if (participants.length > displayCount) {
@@ -174,6 +247,8 @@ document.addEventListener("DOMContentLoaded", () => {
             messageDiv.textContent = result.message;
             messageDiv.className = "success";
             signupForm.reset();
+            // Refresh activities so counts and participant lists update immediately
+            fetchActivities();
             messageDiv.classList.remove("hidden");
             setTimeout(() => messageDiv.classList.add("hidden"), 5000);
           }
