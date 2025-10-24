@@ -67,6 +67,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const participantsListEl = document.createElement("ul");
         participantsListEl.className = "participants-list";
 
+        // Inline fallback styles to force visibility if stylesheet isn't applied
+        participantsListEl.style.display = "flex";
+        participantsListEl.style.flexWrap = "wrap";
+        participantsListEl.style.gap = "6px";
+        participantsListEl.style.paddingLeft = "0";
+        participantsListEl.style.maxHeight = "6.5rem";
+        participantsListEl.style.overflow = "auto";
+        participantsListEl.style.WebkitOverflowScrolling = "touch";
+
+        // Debug helper: confirm element created and class applied
+        console.debug(`Activity "${name}": participants count = ${participants.length}`, participants);
+
         // helper to produce a readable label from different participant shapes
         function participantLabel(p) {
           if (p == null) return "Unknown";
@@ -82,18 +94,39 @@ document.addEventListener("DOMContentLoaded", () => {
           participants.slice(0, displayCount).forEach((p) => {
             const li = document.createElement("li");
             li.textContent = participantLabel(p);
+            // Inline badge fallback so items are visible without CSS
+            li.style.display = "inline-flex";
+            li.style.alignItems = "center";
+            li.style.background = "#eef2ff";
+            li.style.color = "#1a237e";
+            li.style.padding = "6px 10px";
+            li.style.borderRadius = "999px";
+            li.style.fontSize = "13px";
+            li.style.lineHeight = "1";
+            li.style.border = "1px solid rgba(26,35,126,0.06)";
+            li.style.whiteSpace = "nowrap";
             participantsListEl.appendChild(li);
           });
           if (participants.length > displayCount) {
             const moreLi = document.createElement("li");
             moreLi.className = "more";
             moreLi.textContent = `+${participants.length - displayCount} more`;
+            moreLi.style.background = "#fff4e5";
+            moreLi.style.color = "#8a5a00";
+            moreLi.style.fontWeight = "600";
+            moreLi.style.padding = "6px 10px";
+            moreLi.style.borderRadius = "999px";
             participantsListEl.appendChild(moreLi);
           }
         } else {
           const li = document.createElement("li");
           li.className = "muted";
           li.textContent = "No participants yet";
+          li.style.background = "transparent";
+          li.style.color = "#888";
+          li.style.padding = "0";
+          li.style.border = "none";
+          li.style.borderRadius = "0";
           participantsListEl.appendChild(li);
         }
 
